@@ -1,64 +1,75 @@
 type User {
-  userId: ID!
-  name: String
-  reviews: [Review] @relation(name: "WROTE", direction: "OUT")
-  avgStars: Float
-    @cypher(
-      statement: "MATCH (this)-[:WROTE]->(r:Review) RETURN toFloat(avg(r.stars))"
-    )
-  numReviews: Int
-    @cypher(statement: "MATCH (this)-[:WROTE]->(r:Review) RETURN COUNT(r)")
-  recommendations(first: Int = 3): [Business]
-    @cypher(
-      statement: "MATCH (this)-[:WROTE]->(r:Review)-[:REVIEWS]->(:Business)<-[:REVIEWS]-(:Review)<-[:WROTE]-(:User)-[:WROTE]->(:Review)-[:REVIEWS]->(rec:Business) WHERE NOT EXISTS( (this)-[:WROTE]->(:Review)-[:REVIEWS]->(rec) ) WITH rec, COUNT(*) AS num ORDER BY num DESC LIMIT $first RETURN rec"
-    )
+	userId: ID!
+	name: String!
+	RATED_rel: [RATED]
+	rated: [Movie] @relation(name: "RATED", direction: "OUT")
 }
 
-type Business {
-  businessId: ID!
-  name: String!
-  address: String
-  city: String
-  state: String
-  location: Point
-  avgStars: Float
-    @cypher(
-      statement: "MATCH (this)<-[:REVIEWS]-(r:Review) RETURN coalesce(avg(r.stars),0.0)"
-    )
-  reviews: [Review] @relation(name: "REVIEWS", direction: "IN")
-  categories: [Category] @relation(name: "IN_CATEGORY", direction: "OUT")
+type Person {
+	bornIn: String
+	tmdbId: Int
+	imdbId: Int
+	died: Date
+	born: Date
+	name: String!
+	url: String
+	poster: String
+	bio: String
 }
 
-type Review {
-  reviewId: ID!
-  stars: Float
-  text: String
-  date: Date
-  business: Business @relation(name: "REVIEWS", direction: "OUT")
-  user: User @relation(name: "WROTE", direction: "IN")
+type Actor {
+	bornIn: String
+	tmdbId: Int
+	imdbId: Int
+	died: Date
+	born: Date
+	name: String!
+	url: String
+	poster: String
+	bio: String
+	acted_in: [Movie] @relation(name: "ACTED_IN", direction: "OUT")
+}
+type Director {
+	bornIn: String
+	tmdbId: Int
+	imdbId: Int
+	died: Date
+	born: Date
+	name: String!
+	url: String
+	poster: String
+	bio: String
+	directed: [Movie] @relation(name: "DIRECTED", direction: "OUT")
 }
 
-type Category {
-  name: ID!
-  businesses: [Business] @relation(name: "IN_CATEGORY", direction: "IN")
+type Movie {
+	languages: [String]
+	year: Int
+	imdbId: Int
+	runtime: Int
+	imdbRating: Float
+	movieId: ID!
+	countries: [String]
+	imdbVotes: Int
+	title: String
+	url: String
+	revenue: Int
+	tmdbId: Int
+	plot: String
+	poster: String
+	released: Date
+	budget: Int
+	users_rates: [User] @relation(name: "RATED", direction: "IN")
+	RATED_rel: [RATED]
+	in_genre: [Genre] @relation(name: "IN_GENRE", direction: "OUT")
 }
 
-type RatingCount {
-  stars: Float!
-  count: Int!
+type Genre {
+	name: String!
 }
-
-type Mutation {
-  mergeBusinessCategory(categories: [String!]!, businessId: ID!): Business
-    @cypher(
-      statement: "MATCH (b:Business {businessId: $businessId}) UNWIND $categories AS cat MERGE (c:Category {name: cat}) MERGE (b)-[:IN_CATEGORY]->(c) RETURN b"
-    )
-}
-
-type Query {
-  userCount: Int! @cypher(statement: "MATCH (u:User) RETURN COUNT(u)")
-  ratingsCount: [RatingCount]
-    @cypher(
-      statement: "MATCH (r:Review) WITH r.stars AS stars, COUNT(*) AS count ORDER BY stars RETURN {stars: stars, count: count}"
-    )
+type RATED @relation(name: "RATED") {
+	from: User!
+	to: Movie!
+	rating: Float!
+	timestamp: Int!
 }
